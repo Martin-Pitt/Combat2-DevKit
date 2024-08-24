@@ -1,16 +1,27 @@
+/// Link message numbers
 #define MESSAGE_INITIALISED 1
 #define MESSAGE_DIED 2
 #define MESSAGE_RESPAWNED 3
 #define MESSAGE_DIED_WITHOUT_EXPERIENCE 4
 #define MESSAGE_EXPERIENCE_DENIED 5
 
-
 default
 {
     state_entry()
     {
-        llListen(COMBAT_CHANNEL, "", COMBAT_LOG_ID, "");
-        llMessageLinked(LINK_THIS, MESSAGE_INITIALISED, "", "");
+        key landGroup = llList2Key(llGetParcelDetails(llGetPos(), [PARCEL_DETAILS_GROUP]), 0);
+        key objectGroup = llList2Key(llGetObjectDetails(llGetKey(), [OBJECT_GROUP]), 0);
+        
+        if(landGroup == objectGroup)
+        {
+            llListen(COMBAT_CHANNEL, "", COMBAT_LOG_ID, "");
+            llMessageLinked(LINK_THIS, MESSAGE_INITIALISED, "", "");
+        }
+        
+        else
+        {
+            llOwnerSay("There is a mismatch between the group of the object vs the land parcel! Respawn system is disabled. Re-rez the object to initialise again.");
+        }
     }
     
     listen(integer channel, string name, key identifier, string message)
@@ -18,7 +29,6 @@ default
         if(llSubStringIndex(message, "\"DEATH\"") == -1) return; // Quick pre-check
         if((integer)llGetEnv("death_action") != 3) return; // Is the region setting not set to No Action?
         
-        // Parse through combat event messages
         list payloads = llJson2List(message);
         integer count = llGetListLength(payloads);
         while(count --> 0)
@@ -47,8 +57,11 @@ default
     
     experience_permissions(key agent)
     {
-        llTeleportAgent(agent, "", llGetPos(), llRot2Fwd(llGetRot()) + llGetPos());
-        llMessageLinked(LINK_THIS, MESSAGE_RESPAWNED, (string)llGetPos(), agent);
+        vector size = llGetAgentSize(agent);
+        vector position = llGetPos() + <0,0,size.z/2>;
+        vector lookAt = position + llRot2Fwd(llGetRot());
+        llTeleportAgent(agent, "", position, lookAt);
+        llMessageLinked(LINK_THIS, MESSAGE_RESPAWNED, (string)position, agent);
     }
     
     experience_permissions_denied(key agent, integer reason)
@@ -69,5 +82,20 @@ default
         }
         
         llMessageLinked(LINK_THIS, MESSAGE_EXPERIENCE_DENIED, (string)reason, agent);
+    }
+    
+    
+    on_rez(integer param)
+    {
+        llResetScript();
+    }
+    
+    changed(integer change)
+    {
+        if(change & CHANGED_OWNER)
+            llResetScript();
+        
+        if(change & CHANGED_REGION)
+            llResetScript();
     }
 }
