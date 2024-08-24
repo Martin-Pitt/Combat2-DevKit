@@ -3,9 +3,7 @@ This is a set of scripts to implement a respawn system in Second Life with the n
 
 Combat2 Respawns system would be managed by the region owner / SLMC.
 
-The region setting `death_action` needs to be set to `3` (No Action) and the scripts need to set to an experience.
-
-To make it easy for the commnunity to use a singular experience around respawn systems, there is an experience called [Combat2 Respawns](secondlife:///app/experience/b14afc84-6261-11ef-92f8-0242ac110003/profile).
+The region setting `death_action` needs to be set to `3` (No Action) and the scripts need to set to an experience. To make it easy for the commnunity to use a singular experience around respawn systems, there is an experience called [Combat2 Respawns](secondlife:///app/experience/b14afc84-6261-11ef-92f8-0242ac110003/profile), this allows combatants to trust one experience for handling combat related teleportations.
 
 Scripts with the Combat2 Respawns experience set are available on the marketplace at (TBD), or you can find the scripts available in-world at the [opensource shop at Vertical Sim](http://maps.secondlife.com/secondlife/Vertical%20Sim/244/19/3002) (TBD).
 
@@ -15,7 +13,6 @@ Here are respawn systems with increasing complexity.
 
 ### [Simple Spawn Point](Simple%20Spawn%20Point.lsl)
 A single spawn point. Any deaths in the region are rerouted to the location of the object the script is in.
-
 This is effectively similar to the `Teleport to parcel landing point` region setting.
 
 ### Multiple Spawn Points
