@@ -35,7 +35,6 @@ For example if each team has a headquarters/base and there are three territories
 
 
 
-
 ## Interacting with the script
 
 Link messages are used to send information from the respawn script to other custom scripts:
@@ -47,3 +46,21 @@ Link messages are used to send information from the respawn script to other cust
 | `MESSAGE_RESPAWNED = 3`                   | Position    | Agent       | Agent respawned                                              |
 | `MESSAGE_DIED_WITHOUT_EXPERIENCE = 4`     |             | Agent       | Agent respawned but they haven't accepted the experience     |
 | `MESSAGE_EXPERIENCE_DENIED = 5`           | Reason      | Agent       | The experience permission was denied for some reason         |
+
+
+(TBD: Linkset data configuration)
+
+
+## FAQ
+<dl>
+  <dt>Can I be an experience admin to set my scripts to the experience?</dt>
+  <dd>No. By limiting the authors, the experience can gain trust by combatants and have a single source of responsibility. Nexii Malthus is an independant game developer from the SLMC. You are still welcome to contribute to this github though. The idea is similar to the SLMC Regions display panel by Sin Straaf which features an opensource script set to an experience, which allows scripters to comprehend how the system works in practice and interact with it, but avoids security issues or conflicts with the experience database by limiting the experience admins.</dd>
+  
+  <dt>Can I have a customised variant for my SLMC/Game?</dt>
+  <dd>Yes. If you have certain needs, like certain features or making it work with your objective system, I can make a customised version with the experience set and also publish the code here for reference.</dd>
+</dl>
+
+
+
+
+
