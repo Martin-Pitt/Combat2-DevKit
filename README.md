@@ -13,7 +13,7 @@ Scripts with the Combat2 Respawns experience set are available on the marketplac
 ## Respawn Systems
 Here are respawn systems with increasing complexity.
 
-### Simple Spawn Point
+### [Simple Spawn Point](Simple%20Spawn%20Point.lsl)
 A single spawn point. Any deaths in the region are rerouted to the location of the object the script is in.
 
 This is effectively similar to the `Teleport to parcel landing point` region setting.
