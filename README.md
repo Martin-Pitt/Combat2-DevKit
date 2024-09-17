@@ -1,60 +1,121 @@
 # Combat2 Respawns
-This is a set of scripts to implement a respawn system in Second Life with the new Combat2 features.
 
-Combat2 Respawns system would be managed by the region owner / SLMC.
+Respawns, teams, game objectives and more for Combat2.
 
-The region setting `death_action` needs to be set to `3` (No Action) and the scripts need to set to an experience. To make it easy for the commnunity to use a singular experience around respawn systems, there is an experience called [Combat2 Respawns](secondlife:///app/experience/b14afc84-6261-11ef-92f8-0242ac110003/profile), this allows combatants to trust one experience for handling combat related teleportations.
+At its core Combat2 Respawns (C2R) is an opensource system for Combat2 regions which allows them to have team-based respawns and objective systems.
 
-Scripts with the Combat2 Respawns experience set are available on the marketplace at (TBD), or you can find the scripts available in-world at the [opensource shop at Vertical Sim](http://maps.secondlife.com/secondlife/Vertical%20Sim/244/19/3002) (TBD).
+The system would be managed by the region owner / SLMC / game developer and there are also additional scripts.
 
+Concepts and scripts introduced are:
+- [Tracking](#tracking)
+- [Respawns](#respawns)
+- [Teams](#teams)
+- [Territories](#territories)
+- [Objectives](#objectives)
+- [Areas](#areas)
+- [Layers](#layers)
+- [Vehicle Respawns](#vehicle-respawns)
+- [Vehicle Layers](#vehicle-layers)
 
-## Respawn Systems
-Here are respawn systems with increasing complexity.
+The minimum necessary for C2R are: Tracking and Respawns. Everything else adds value and allows more complex gameplay.
 
-### [Simple Spawn Point](Simple%20Spawn%20Point.lsl)
-A single spawn point. Any deaths in the region are rerouted to the location of the object the script is in.
-This is effectively similar to the `Teleport to parcel landing point` region setting.
-
-### Multiple Spawn Points
-Demonstrates multiple spawn points. Any deaths in the region are rerouted to a random spawn point marker that was found during initialisation.
-
-### Group-based Spawn Points
-Respawn system that is based on the detected group. Deaths for the agents are rerouted based on their group affiliation or lack thereof.
-
-### Team-based Spawn Points
-Respawn system that works with agents marked with a team. Deaths for agents are rerouted based on their team affiliation or lack thereof.
-
-### Team-based Push-Pull Spawn Points
-If you have a conquest or territorial control system, this system allows it to adjust the spawn points based on the current objective.
-
-For example if each team has a headquarters/base and there are three territories inbetween called A, B and C, the spawn points should be placed as such:
-![image](https://github.com/user-attachments/assets/437bbbd3-f16c-4ca7-b33f-c10b290ec73c)
+Although Tracking can also be used standalone if you just want to enjoy an event-based `llGetAgentList` and being able to easily distribute custom data per agent. Like if you are developing a game for an event like halloween or christmas.
 
 
+## Concepts
 
-## Interacting with the script
+<a name="tracking"/>
+### Tracking
+The tracking server is a script that provides an event-based alternative to `llGetAgentList()` as well as custom data per-agent, e.g. what team they are part of.
 
-Link messages are used to send information from the respawn script to other custom scripts:
+The servers work in a distributed way, allowing for multi-region setups. The servers need to be positioned closely next to eachother across sim boundaries for data to be shared with eachother, otherwise a relay near the border can help.
 
-| Number                                    | String      | Key         | Description                                                  |
-| ----------------------------------------- | ----------- | ----------- | ------------------------------------------------------------ |
-| `MESSAGE_INITIALISED = 1`                 |             |             | Script was initialised                                       |
-| `MESSAGE_DIED = 2`                        |             | Agent       | Agent has died                                               |
-| `MESSAGE_RESPAWNED = 3`                   | Position    | Agent       | Agent respawned                                              |
-| `MESSAGE_DIED_WITHOUT_EXPERIENCE = 4`     |             | Agent       | Agent respawned but they haven't accepted the experience     |
-| `MESSAGE_EXPERIENCE_DENIED = 5`           | Reason      | Agent       | The experience permission was denied for some reason         |
+In addition to events on agents entering or leaving your region or multi-region estate, there are also update events for any changes in the custom data, e.g. if they had joined or changed teams.
+
+Tracking consists of:
+- One server in the region that tracks agents via a llGetAgentList timer
+- Script in your objects that listens to the server and keep in sync with the server data locally via Linkset Data
 
 
-(TBD: Linkset data configuration)
+<a name="respawns"/>
+### Respawns
+The respawn system itself is an experience-based teleporter system currently where the region setting `death_action` needs to be set to `3` (No Action) and scripts need to be set to an allowed experience within the region. The project offers an experience called Combat2 Respawns that can be used.
+
+Scripts with the Combat2 Respawns experience set are available on the marketplace at (TBD), or you can find the scripts available in-world at my region [Vertical Sim]((http://maps.secondlife.com/secondlife/Vertical%20Sim/244/19/3002)) (TBD).
+
+
+<a name="teams"/>
+### Teams
+Agents can be assigned to teams. This is simply a string of custom data that exists against each agent. You can compute a list by going through each agent and checking what team they are assigned to.
+
+
+<a name="territories"/>
+### Territories
+Territories are high-level 2D areas that can be owned by a team. Territories are typically linked to an objective, such as a capture point.
+
+These have a 2D polygon shape and can have borders shared with other territories.
+
+This can allow for objectives to force a sequential progress on a team, such as having to own a neighbouring territory before that team is allowed to capture a point.
+
+
+<a name="objectives"/>
+### Objectives
+Objectives are pretty much that and can take many forms. They provide sequential order of goals. They can also help provide an endgame to conclude a session or you can design a game to be indefinite rather than having a start or end.
+
+Objectives can control territorial ownership to teams. These can be reversible such as capture points, or irreversible such as in Breakthrough or Rush game modes in Battlefield 2042 where the attackers move the frontline forward or the defenders try to hold them back.
+
+
+<a name="areas"/>
+### Areas
+Areas are volumes defined in 3D that zone and subdivide your region into named areas. Areas are named using dot separated string, e.g. "Hub", "Hub.Store", "City.Skyscraper", "City.Skyscraper.Kitchen" etc. You can be detailed or high level as you wish.
+
+The top level area is generally a zone and zones help define areas of your region, for example where the hub is and where the game, arena or battlefields are.
+
+The Respawn system should be restricted to a zone so that you can manage safe areas and where respawns due to combat can happen.
+
+
+<a name="layers"/>
+### Layers
+Equipment layers are a system that allows you to easily switch weapons and equipment via hotkey gestures for your avatar. You attach your equipment before combat and then can use your hotkeyed gestures to swap your active weapon/equipment (or active layer) in the middle of combat easily. A supported HUD can also show which layers you have currently and their status, such as cooldowns or ammo count.
+
+Note that only one piece of equipment can be attached in a specific layer. The equipment creator defines the layer of their attachment.
+
+The system is inspired by many games, from Half Life, Battlefield to Helldivers 2, etc.
+
+The convention within the SLMC is to have three weapon layers, although currently most throwables are part of a HUD. However for balancing there is a desire to move to having throwables take up a layer slot as being able to throw grenades while in the middle of shooting is problematic, there is also the benefit of being able to clearly telegraph the action and also allows the user to cook grenades or have better control and flexibility around their throwables.
+
+So it would be three weapon layers (Layers 1, 2 and 3), as well as a layer for throwables (Layer 4).
+
+Layer 1, 2 and 3 are typically: Primary, Secondary and Special weapons/gadgets.
+
+
+<a name="vehicle-respawns"/>
+### Vehicle Respawns / Teleports
+Vehicle respawns/teleports are currently a non-standard feature that each content creator designs themselves or that a vehicle lacks. Here C2R provides a standard that vehicle creators can use, or for vehicle users to add to their vehicles if they are modifiable.
+
+
+<a name="vehicle-layers"/>
+### Vehicle Layers
+Vehicles may also have their own loadouts and this could work in a similar way to avatar equipment layers. This would allow HUDs to show the vehicle loadout as layers and the active layer for the vehicle as well as any cooldowns or ammo counts.
+
+Additionally a vehicle seat may be designed in such a way to leave an avatar vulnerable to gunfire but allow them to use their own avatar equipment instead of disabling them by default.
+
+
 
 
 ## FAQ
 <dl>
-  <dt>Can I be an experience admin to set my scripts to the experience?</dt>
-  <dd>No. By limiting the authors, the experience can gain trust by combatants and have a single source of responsibility. Nexii Malthus is an independant game developer from the SLMC. You are still welcome to contribute to this github though. The idea is similar to the SLMC Regions display panel by Sin Straaf which features an opensource script set to an experience, which allows scripters to comprehend how the system works in practice and interact with it, but avoids security issues or conflicts with the experience database by limiting the experience admins.</dd>
+  <dt>How do I set this up in my region?</dt>
+  <dd>Follow the [quickstart guide](Quickstart.md)</dd>
   
-  <dt>Can I have a customised variant for my SLMC/Game?</dt>
-  <dd>Yes. If you have certain needs, like certain features or making it work with your objective system, I can make a customised version with the experience set and also publish the code here for reference.</dd>
+  <dt>Can I customise this for my SLMC/Game?</dt>
+  <dd>Yes, it's all opensource. Although keep in mind if you deviate on the listener message protocol it could cause issues with existing HUD or other systems (Layers, Vehicle Respawns, etc)</dd>
+  
+  <dt>I got a question?</dt>
+  <dd>Ask away, feel free to IM me in-world</dd>
+  
+  <dt>Who made this?</dt>
+  <dd>Nexii Malthus</dd>
 </dl>
 
 
