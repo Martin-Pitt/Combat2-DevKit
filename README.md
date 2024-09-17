@@ -26,6 +26,7 @@ Although Tracking can also be used standalone if you just want to enjoy an event
 
 <a name="tracking"/>
 ### Tracking
+
 The tracking server is a script that provides an event-based alternative to `llGetAgentList()` as well as custom data per-agent, e.g. what team they are part of.
 
 The servers work in a distributed way, allowing for multi-region setups. The servers need to be positioned closely next to eachother across sim boundaries for data to be shared with eachother, otherwise a relay near the border can help.
@@ -39,6 +40,7 @@ Tracking consists of:
 
 <a name="respawns"/>
 ### Respawns
+
 The respawn system itself is an experience-based teleporter system currently where the region setting `death_action` needs to be set to `3` (No Action) and scripts need to be set to an allowed experience within the region. The project offers an experience called Combat2 Respawns that can be used.
 
 Scripts with the Combat2 Respawns experience set are available on the marketplace at (TBD), or you can find the scripts available in-world at my region [Vertical Sim]((http://maps.secondlife.com/secondlife/Vertical%20Sim/244/19/3002)) (TBD).
@@ -46,11 +48,13 @@ Scripts with the Combat2 Respawns experience set are available on the marketplac
 
 <a name="teams"/>
 ### Teams
+
 Agents can be assigned to teams. This is simply a string of custom data that exists against each agent. You can compute a list by going through each agent and checking what team they are assigned to.
 
 
 <a name="territories"/>
 ### Territories
+
 Territories are high-level 2D areas that can be owned by a team. Territories are typically linked to an objective, such as a capture point.
 
 These have a 2D polygon shape and can have borders shared with other territories.
@@ -60,6 +64,7 @@ This can allow for objectives to force a sequential progress on a team, such as 
 
 <a name="objectives"/>
 ### Objectives
+
 Objectives are pretty much that and can take many forms. They provide sequential order of goals. They can also help provide an endgame to conclude a session or you can design a game to be indefinite rather than having a start or end.
 
 Objectives can control territorial ownership to teams. These can be reversible such as capture points, or irreversible such as in Breakthrough or Rush game modes in Battlefield 2042 where the attackers move the frontline forward or the defenders try to hold them back.
@@ -67,6 +72,7 @@ Objectives can control territorial ownership to teams. These can be reversible s
 
 <a name="areas"/>
 ### Areas
+
 Areas are volumes defined in 3D that zone and subdivide your region into named areas. Areas are named using dot separated string, e.g. "Hub", "Hub.Store", "City.Skyscraper", "City.Skyscraper.Kitchen" etc. You can be detailed or high level as you wish.
 
 The top level area is generally a zone and zones help define areas of your region, for example where the hub is and where the game, arena or battlefields are.
@@ -76,6 +82,7 @@ The Respawn system should be restricted to a zone so that you can manage safe ar
 
 <a name="layers"/>
 ### Layers
+
 Equipment layers are a system that allows you to easily switch weapons and equipment via hotkey gestures for your avatar. You attach your equipment before combat and then can use your hotkeyed gestures to swap your active weapon/equipment (or active layer) in the middle of combat easily. A supported HUD can also show which layers you have currently and their status, such as cooldowns or ammo count.
 
 Note that only one piece of equipment can be attached in a specific layer. The equipment creator defines the layer of their attachment.
@@ -91,11 +98,13 @@ Layer 1, 2 and 3 are typically: Primary, Secondary and Special weapons/gadgets.
 
 <a name="vehicle-respawns"/>
 ### Vehicle Respawns / Teleports
+
 Vehicle respawns/teleports are currently a non-standard feature that each content creator designs themselves or that a vehicle lacks. Here C2R provides a standard that vehicle creators can use, or for vehicle users to add to their vehicles if they are modifiable.
 
 
 <a name="vehicle-layers"/>
 ### Vehicle Layers
+
 Vehicles may also have their own loadouts and this could work in a similar way to avatar equipment layers. This would allow HUDs to show the vehicle loadout as layers and the active layer for the vehicle as well as any cooldowns or ammo counts.
 
 Additionally a vehicle seat may be designed in such a way to leave an avatar vulnerable to gunfire but allow them to use their own avatar equipment instead of disabling them by default.
