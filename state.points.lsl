@@ -4,8 +4,6 @@ string <RespawnPoint>_territory
 string <RespawnPoint>_team
 */
 
-#define initRespawnPoints() llLinksetDataWrite("respawnpoints", llList2Json(JSON_ARRAY, RespawnPoints));
-
 onRespawnPointFound(string payload)
 {
     string respawn = llJsonGetValue(payload, ["respawn"]);

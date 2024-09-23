@@ -5,8 +5,6 @@ string <Objective>_type
 string <Objective>_state
 */
 
-#define initObjectives() llLinksetDataWrite("objectives", llList2Json(JSON_ARRAY, Objectives));
-
 onObjectiveFound(string payload)
 {
     string objective = llJsonGetValue(payload, ["objective"]);

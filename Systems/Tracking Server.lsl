@@ -7,100 +7,211 @@
 #include "Combat2 Respawns/constants.lsl"
 #include "Combat2 Respawns/tracking.lsl"
 
-
+// For additional custom per-agent data, such as experiences, areas, hud attachment tracking, etc
+// we provide an additional startup pre-check before an agent is considered having entered the sim
+// so we can have a full data packet in one go before sending it off into the tracking channels
 list Prechecks = [/* key Agent, integer checks*/];
-integer TrackingExperienceScripts;
-
-
-// Completely customise this function to your needs, or just return a single string if you cover the whole sim
-string withinArea(vector pos) {
-    string currentRegion = llGetRegionName();
-    vector gPos = llGetRegionCorner() + pos; // Global position coordinates -- pretty useful for defining areas across multiple sims
-    
-    // Within Balmora or Balmora's Outskirts
-    if(100 < pos.z && pos.z < 869) return "Balmora";
-    
-    // Region Hub
-    if(
-        gPos.x > (161792-64) && gPos.y > (320256-64) && gPos.z > (3008-64) &&
-        gPos.x < (161792+64) && gPos.y < (320256+64) && gPos.z < (3008+64)
-    ) return "Hub";
-    
-    // Arena
-    if(896 < pos.z && pos.z < 1000)
-    {
-        if(
-            currentRegion == "Vertical Sim" &&
-            995 < pos.z && pos.z < 1011 &&
-            120 < pos.x && pos.x < 136 &&
-            120 < pos.y && pos.y < 136
-        ) return "Arena.Hub";
-        
-        return "Arena";
-    }
-    
-    // Development Platform
-    if(1000 < pos.z && pos.z < 1100) return "Dev Platform";
-    
-    // Else Vertical Sim everywhere above but not in the central cylinder
-    if(
-        pos.z >= 1088 &&
-        llVecDist(<gPos.x, gPos.y, 0>, <161792, 320256, 0>) >= 64
-    ) return "Vertical Sim";
-    
-    return "";
-}
-
-
+integer TrackingDataScripts;
 
 
 default
 {
     state_entry()
     {
-        llLinksetDataReset();
-        llLinksetDataWrite("tracked", "[]");
-        llListen(TRACKING_INTERNAL_CHANNEL, "", "", "");
-        llListen(TRACKING_CHANNEL, "", "", "");
-        llSetTimerEvent(0.25);
-        sendMessage(llList2Json(JSON_OBJECT, ["type", "init", "region", llGetRegionName()]));
-        externalMessage(llList2Json(JSON_OBJECT, ["type", "reset"]));
+        llSetObjectName("Tracking Server (" + llGetRegionName() + ")");
         
-        TrackingExperienceScripts = 0;
+        llLinksetDataDeleteFound("^[a-f0-9\\-]{36}_", "");
+        llLinksetDataWrite("tracked", "[]");
+        llListen(TRACKING_CHANNEL, "", "", "");
+        llListen(TRACKING_INTERNAL_CHANNEL, "", "", "");
+        llListen(TRACKING_BORDER_CHANNEL, "", "", "");
+        llSetTimerEvent(0.25);
+        string init = llList2Json(JSON_OBJECT, [
+            "type", "init",
+            "region", llGetRegionName(),
+            "signature", generateHandshake()
+        ]);
+        string reset = llList2Json(JSON_OBJECT, ["type", "reset"]);
+        internalMessage(init);
+        borderMessage(init);
+        externalMessage(reset);
+        
+        TrackingDataScripts = 0;
         integer iterator = llGetInventoryNumber(INVENTORY_SCRIPT);
         while(iterator --> 0)
         {
             string script = llGetInventoryName(INVENTORY_SCRIPT, iterator);
-            if(llGetSubString(script, 0, 19) == "Tracking Experience") TrackingExperienceScripts++;
+            if(llGetSubString(script, 0, 14) == "Tracking Data: ") TrackingDataScripts++;
         }
     }
     
     listen(integer channel, string name, key identifier, string message)
     {
-        if(channel == TRACKING_INTERNAL_CHANNEL)
+        if(channel == TRACKING_INTERNAL_CHANNEL || channel == TRACKING_BORDER_CHANNEL)
         {
-            if(notSameOwner(identifier)) return;
-            
             string type = llJsonGetValue(message, ["type"]);
             
+            // Check for other tracking servers that had been initialised and if so verify them
+            if(type == "init") { onTrackingServerInit(identifier, message); return; }
+            else if(type == "reinit") { onTrackingServerVerify(identifier, llJsonGetValue(message, ["signature"])); return; }
+            else if(!(llGetOwnerKey(identifier) == llGetOwner() || llListFindList(VerifiedIdentifiers, [identifier]) != -1)) return;
+            
+            // Agent events
             if(type == "entered") onTrackingAgentEntered(message);
             else if(type == "updated") onTrackingAgentUpdated(message);
             else if(type == "left") onTrackingAgentLeft(message);
-            else if(type == "init") onTrackingServerInit(message);
+            
+            // Proxy all events onto the public channel
+            externalMessage(message);
         }
         
         else if(channel == TRACKING_CHANNEL)
         {
             string action = llJsonGetValue(message, ["action"]);
             
-            if(action == "get-list") onTrackingGetList(identifier);
+            // Get a full list of all the tracking data
+            if(action == "get-list")
+            {
+                list bucket;
+                integer keys = llGetListLength(AgentDataKeys);
+                integer iterator = llGetListLength(Tracked);
+                integer fill;
+                while(iterator --> 0)
+                {
+                    string agent = llList2Key(Tracked, iterator);
+                    list data = [
+                        "agent", agent
+                    ];
+                    integer keyIterator = keys;
+                    while(keyIterator --> 0)
+                    {
+                        string k = llList2String(AgentDataKeys, keyIterator);
+                        string v = llLinksetDataRead(agent + "_" + k);
+                        data += [k, v];
+                    }
+                    string payload = llList2Json(JSON_OBJECT, data);
+                    integer size = llStringLength(payload);
+                    
+                    if(fill + size + 64 >= 1024)
+                    {
+                        llRegionSayTo(identifier, TRACKING_CHANNEL, llList2Json(JSON_OBJECT, [
+                            "type", "echo-fragment",
+                            "list", llList2Json(JSON_ARRAY, bucket)
+                        ]));
+                        bucket = [];
+                        fill = 0;
+                    }
+                    
+                    bucket += payload;
+                    fill += size;
+                }
+                
+                llRegionSayTo(identifier, TRACKING_CHANNEL, llList2Json(JSON_OBJECT, [
+                    "type", "echo-end",
+                    "list", llList2Json(JSON_ARRAY, bucket)
+                ]));
+            }
             
-            // Commands afterwards are owner only
-            if(notSameOwner(identifier)) return;
+            // Get tracking data of specific agent
+            else if(action == "get")
+            {
+                string agent = llJsonGetValue(message, ["agent"]);
+                
+                list data = [
+                    "type", "echo",
+                    "agent", agent
+                ];
+                integer keyIterator = llGetListLength(AgentDataKeys);
+                while(keyIterator --> 0)
+                {
+                    string k = llList2String(AgentDataKeys, keyIterator);
+                    string v = llLinksetDataRead(agent + "_" + k);
+                    data += [k, v];
+                }
+                
+                llRegionSayTo(identifier, TRACKING_CHANNEL, llList2Json(JSON_OBJECT, data));
+            }
             
-            if(action == "message") onTrackingMessage(message);
-            else if(action == "assign-team") onTrackingAssignTeam(message);
-            else if(action == "request-experience") onTrackingRequestExperience(message);
+            // Commands afterwards are owner only / private
+            else if(llGetOwnerKey(identifier) != llGetOwner()) return;
+            
+            // Allow you to update any agent data
+            else if(action == "delta")
+            {
+                // Import data
+                string agent = llJsonGetValue(message, ["agent"]);
+                list data = llJson2List(message);
+                integer index; integer total; integer patched;
+                for(index = 0, total = llGetListLength(data); index < total; index += 2)
+                {
+                    string name = llList2String(data, index);
+                    string newValue = llList2String(data, index + 1);
+                    if(name != "type" && name != "agent")
+                    {
+                        if(llListFindList(AgentDataKeys, [name]) == -1) AgentDataKeys += name;
+                        string oldValue = llLinksetDataRead(agent + "_" + name);
+                        if(newValue != oldValue)
+                        {
+                            llLinksetDataWrite(agent + "_" + name, newValue);
+                            patched++;
+                        }
+                        else llJsonSetValue(message, [name], JSON_DELETE); // Drop from export below
+                    }
+                }
+                
+                // Only if anything actually changed
+                if(!patched) return;
+                
+                // Export out, can use most of the message as-is
+                message = llJsonSetValue(message, ["action"], JSON_DELETE);
+                message = llJsonSetValue(message, ["type"], "updated");
+                sendMessage(message);
+                llMessageLinked(LINK_SET, MESSAGE_AGENT_UPDATED, "", agent);
+            }
+            
+            // Send a RegionSayTo message directly to the target agent (but should work with objects too?)
+            else if(action == "message")
+            {
+                key target = (key)llJsonGetValue(message, ["target"]);
+                if(llKey2Name(target) != "")
+                {
+                    llRegionSayTo(
+                        target,
+                        (integer)llJsonGetValue(message, ["channel"]),
+                        llJsonGetValue(message, ["message"])
+                    );
+                }
+                
+                // Relay to other Tracking Servers
+                else if(llJsonValueType(message, ["_relayed"]) != JSON_TRUE)
+                {
+                    message = llJsonSetValue(message, ["_relayed"], JSON_TRUE);
+                    borderMessage(message);
+                }
+            }
+            
+            // Ask a experience script to request experience permissions
+            else if(action == "request-experience")
+            {
+                string agent = (key)llJsonGetValue(message, ["agent"]);
+                if(llListFindList(Tracked, [(key)agent]) != -1) return;
+                
+                string region = llLinksetDataRead(agent + "_region");
+                string experience = llJsonGetValue(message, ["experience"]);
+                
+                if(region == llGetRegionName())
+                {
+                    llRegionSayTo(agent, PUBLIC_CHANNEL, llJsonGetValue(message, ["message"]));
+                    llMessageLinked(LINK_SET, MESSAGE_EXPERIENCE_REQUEST, experience, agent);
+                }
+                
+                // Relay to other Tracking Servers
+                else if(llJsonValueType(message, ["_relayed"]) != JSON_TRUE)
+                {
+                    message = llJsonSetValue(message, ["_relayed"], JSON_TRUE);
+                    borderMessage(message);
+                }
+            }
         }
     }
     
@@ -110,13 +221,14 @@ default
         
         // Loop through region agents to see if there are new additions
         list agents = llGetAgentList(AGENT_LIST_REGION, []);
+        integer dataKeys = llGetListLength(AgentDataKeys);
         integer iterator = llGetListLength(agents);
         while(iterator --> 0)
         {
-            key agent = llList2Key(agents, iterator);
+            string agent = llList2Key(agents, iterator);
             if(agent == NULL_KEY) jump continue;
             
-            integer index = llListFindList(Tracked, (list)agent);
+            integer index = llListFindList(Tracked, [(key)agent]);
             
             string animation = llGetAnimation(agent);
             string legacyName = llKey2Name(agent); // Ghosted avatars have an empty string
@@ -135,88 +247,74 @@ default
             
             if(index == -1)
             {
-                if(TrackingExperienceScripts)
+                if(TrackingDataScripts)
                 {
-                    integer pre = llListFindList(Prechecks, (list)agent);
+                    integer pre = llListFindList(Prechecks, [(key)agent]);
                     if(pre == -1)
                     {
-                        Prechecks += [agent, 0];
-                        llLinksetDataWrite((string)agent + "_experiences", "");
-                        llMessageLinked(LINK_THIS, MESSAGE_EXPERIENCE_TEST, "", agent);
+                        Prechecks += [(key)agent, 0];
+                        llMessageLinked(LINK_SET, MESSAGE_PRECHECK, "", agent);
                         jump continue; // Add to prechecks first
                     }
                     
                     integer checks = llList2Integer(Prechecks, pre + 1);
-                    if(checks < TrackingExperienceScripts)
-                        jump continue; // Do not consider until prechecks are complete
+                    if(checks < TrackingDataScripts) jump continue; // Do not consider until prechecks are complete
                     
+                    // Prechecks all complete
                     Prechecks = llDeleteSubList(Prechecks, pre, pre + 1);
                 }
                 
                 // Event: Agent entered region
-                Tracked += agent;
-                vector agentPos = llList2Vector(llGetObjectDetails(agent, [OBJECT_POS]), 0);
-                string area = withinArea(agentPos);
+                Tracked += (key)agent;
                 key group = llList2Key(llGetObjectDetails(llList2Key(attachments, 0), [OBJECT_GROUP]), 0);
                 
                 llLinksetDataWrite("tracked", llList2Json(JSON_ARRAY, Tracked));
-                llLinksetDataWrite((string)agent + "_TTL", (string)TRACKING_TTL);
-                llLinksetDataWrite((string)agent + "_region", currentRegion);
-                llLinksetDataWrite((string)agent + "_area", area);
-                llLinksetDataWrite((string)agent + "_displayName", displayName);
-                llLinksetDataWrite((string)agent + "_userName", userName);
-                llLinksetDataWrite((string)agent + "_group", group);
-                llLinksetDataWrite((string)agent + "_huds", "");
-                llLinksetDataWrite((string)agent + "_team", "");
+                llLinksetDataWrite(agent + "_TTL", (string)TRACKING_TTL);
+                llLinksetDataWrite(agent + "_region", currentRegion);
+                llLinksetDataWrite(agent + "_displayName", displayName);
+                llLinksetDataWrite(agent + "_userName", userName);
+                llLinksetDataWrite(agent + "_group", group);
                 
-                sendMessage(llList2Json(JSON_OBJECT, [
+                list data = [
                     "type", "entered",
-                    "agent", agent,
-                    
-                    "region", currentRegion,
-                    "area", area,
-                    "displayName", displayName,
-                    "userName", userName,
-                    "group", group
-                ]));
-                
-                llMessageLinked(LINK_SET, MESSAGE_AGENT_ENTERED, agent, "");
+                    "agent", agent
+                ];
+                integer keyIterator = dataKeys;
+                while(keyIterator --> 0)
+                {
+                    string k = llList2String(AgentDataKeys, keyIterator);
+                    string v = llLinksetDataRead(agent + "_" + k);
+                    data += [k, v];
+                }
+                string json = llList2Json(JSON_OBJECT, data);
+                sendMessage(json);
+                llMessageLinked(LINK_SET, MESSAGE_AGENT_ENTERED, "", agent);
             }
             
             else
             {
-                string region = llLinksetDataRead((string)agent + "_region");
-                // hud = (key)llLinksetDataRead((string)agent + "_hud"); TODO: multi-huds
+                string region = llLinksetDataRead(agent + "_region");
                 integer changedRegion = region != currentRegion;
-                
-                // The agent has crossed sim, but if we had a HUD, check if it's present yet
-                // before we consider the agent as having crossed
-                /*if(changedRegion && hud != NULL_KEY) TODO: multi-huds
-                {
-                    integer hasHUD = llList2Integer(llGetObjectDetails(hud, [OBJECT_TEMP_ATTACHED]), 0);
-                    if(!hasHUD) changedRegion = FALSE;
-                }*/
                 
                 if(changedRegion)
                 {
                     // Event: Agent changed region
-                    llLinksetDataWrite((string)agent + "_region", currentRegion);
+                    llLinksetDataWrite(agent + "_region", currentRegion);
                     
-                    sendMessage(llList2Json(JSON_OBJECT, [
+                    string json = llList2Json(JSON_OBJECT, [
                         "type", "updated",
                         "agent", agent,
-                        
                         "region", currentRegion
-                    ]));
-                    
-                    llMessageLinked(LINK_SET, MESSAGE_AGENT_UPDATED, agent, "");
+                    ]);
+                    sendMessage(json);
+                    llMessageLinked(LINK_SET, MESSAGE_AGENT_UPDATED, "", agent);
                 }
             }
             
             @continue;
         }
         
-        // Loop through tracked to see if agents have left or HUDs are gone
+        // Loop through tracked to see if agents have left
         iterator = llGetListLength(Tracked);
         while(iterator --> 0)
         {
@@ -224,12 +322,7 @@ default
             integer TTL = (integer)llLinksetDataRead(agent + "_TTL");
             string region = llLinksetDataRead(agent + "_region");
             if(region != currentRegion) jump continue2;
-            
-            string area = llLinksetDataRead(agent + "_area");
             key group = (key)llLinksetDataRead(agent + "_group");
-            string experiences = llLinksetDataRead(agent + "_experiences");
-            string huds = llLinksetDataRead(agent + "_huds");
-            
             list attachments = llGetAttachedList(agent);
             
             // The agent could be logging out, teleporting away, crossing sims or be a ghosted avatar
@@ -250,22 +343,14 @@ default
                     // Event: Agent left region
                     Tracked = llDeleteSubList(Tracked, iterator, iterator);
                     llLinksetDataWrite("tracked", llList2Json(JSON_ARRAY, Tracked));
-                    llLinksetDataDelete(agent + "_TTL");
-                    llLinksetDataDelete(agent + "_region");
-                    llLinksetDataDelete(agent + "_area");
-                    llLinksetDataDelete(agent + "_displayName");
-                    llLinksetDataDelete(agent + "_userName");
-                    llLinksetDataDelete(agent + "_group");
-                    llLinksetDataDelete(agent + "_experiences");
-                    llLinksetDataDelete(agent + "_huds");
-                    llLinksetDataDelete(agent + "_team");
+                    llLinksetDataDeleteFound("^" + agent + "_", "");
                     
-                    sendMessage(llList2Json(JSON_OBJECT, [
+                    string json = llList2Json(JSON_OBJECT, [
                         "type", "left",
                         "agent", agent
-                    ]));
-                    
-                    llMessageLinked(LINK_SET, MESSAGE_AGENT_LEFT, agent, "");
+                    ]);
+                    sendMessage(json);
+                    llMessageLinked(LINK_SET, MESSAGE_AGENT_LEFT, "", agent);
                 }
             }
             
@@ -273,11 +358,8 @@ default
             else
             {
                 // We'll need to check changes to these:
-                // - Area
                 // - Group
-                // - HUD
                 
-                vector agentPos = llList2Vector(llGetObjectDetails(agent, [OBJECT_POS]), 0);
                 key currentGroup = llList2Key(llGetObjectDetails(llList2Key(attachments, -1), [OBJECT_GROUP]), 0);
                 
                 integer isUpdated = FALSE;
@@ -286,14 +368,6 @@ default
                     "agent", agent
                 ]);
                 
-                string currentArea = withinArea(agentPos);
-                if(currentArea != area)
-                {
-                    llLinksetDataWrite((string)agent + "_area", currentArea);
-                    updated = llJsonSetValue(updated, ["area"], currentArea);
-                    isUpdated = TRUE;
-                }
-                
                 if(currentGroup != group)
                 {
                     llLinksetDataWrite((string)agent + "_group", currentGroup);
@@ -301,23 +375,11 @@ default
                     isUpdated = TRUE;
                 }
                 
-                /*if(hud != NULL_KEY) TODO: multi-huds
-                {
-                    integer hasHUD = llList2Integer(llGetObjectDetails(hud, [OBJECT_TEMP_ATTACHED]), 0);
-                    if(!hasHUD)
-                    {
-                        llLinksetDataWrite((string)agent + "_hud", NULL_KEY);
-                        updated = llJsonSetValue(updated, ["hud"], "");
-                        isUpdated = TRUE;
-                    }
-                }*/
-                
                 
                 if(isUpdated)
                 {
                     sendMessage(updated);
-                    
-                    llMessageLinked(LINK_SET, MESSAGE_AGENT_UPDATED, agent, "");
+                    llMessageLinked(LINK_SET, MESSAGE_AGENT_UPDATED, "", agent);
                 }
             }
             
@@ -335,11 +397,15 @@ default
     
     link_message(integer sender, integer value, string text, key identifier)
     {
-        if(value == MESSAGE_EXPERIENCE_ACCEPTED) onTrackingLinkExperienceAccepted(text);
-        else if(value == MESSAGE_EXPERIENCE_DENIED) onTrackingLinkExperienceDenied(text);
-        else if(value == MESSAGE_EXPERIENCE_ADDED) onTrackingLinkExperienceAdded(identifier);
-        else if(value == MESSAGE_EXPERIENCE_REMOVED) onTrackingLinkExperienceRemoved(identifier);
-        else if(value == MESSAGE_EXPERIENCE_TESTED) onTrackingLinkExperienceTested(identifier);
+        if(value == MESSAGE_PRECHECKED) onTrackingLinkPrechecked(identifier, text);
+        else if(value == MESSAGE_DELTA) onTrackingLinkDelta(identifier, text);
+        else if(value == MESSAGE_SEND) onTrackingLinkSend(text);
+        
+        // else if(value == MESSAGE_EXPERIENCE_ACCEPTED) onTrackingLinkExperienceAccepted(text);
+        // else if(value == MESSAGE_EXPERIENCE_DENIED) onTrackingLinkExperienceDenied(text);
+        // else if(value == MESSAGE_EXPERIENCE_ADDED) onTrackingLinkExperienceAdded(identifier);
+        // else if(value == MESSAGE_EXPERIENCE_REMOVED) onTrackingLinkExperienceRemoved(identifier);
+        // else if(value == MESSAGE_EXPERIENCE_TESTED) onTrackingLinkExperienceTested(identifier);
     }
     
     changed(integer change)

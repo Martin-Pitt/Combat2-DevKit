@@ -7,8 +7,6 @@ integer[] <Territory>_lines - Indicates which line between vertices borders a ne
 string <Territory>_team - Team ownership
 */
 
-#define initTerritories() llLinksetDataWrite("territories", llList2Json(JSON_ARRAY, Territories));
-
 onTerritoryFound(string payload)
 {
     string territory = llJsonGetValue(payload, ["territory"]);

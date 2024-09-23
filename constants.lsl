@@ -1,7 +1,8 @@
 // Listener channels
 #define C2R_CHANNEL -906433015
 #define TRACKING_CHANNEL -906433013
-#define TRACKING_INTERNAL_CHANNEL -906433014
+#define TRACKING_INTERNAL_CHANNEL -906433012
+#define TRACKING_BORDER_CHANNEL -906433014
 #define generateVehicleChannel(identifier) (-(integer)("0x" + llGetSubString(llMD5String((string)identifier, 0), 0, 3)) + 10)
 #define generateLayersChannel(identifier) (-(integer)("0x" + llGetSubString(llMD5String((string)identifier, 0), 0, 3)) + 20)
 
@@ -18,4 +19,9 @@
 #define MESSAGE_AGENT_ENTERED 1030
 #define MESSAGE_AGENT_UPDATED 1031
 #define MESSAGE_AGENT_LEFT 1032
+#define MESSAGE_PRECHECK 1033
+#define MESSAGE_PRECHECKED 1034
+#define MESSAGE_DELTA 1035
+#define MESSAGE_SEND 1036
+#define MESSAGE_EXPERIENCE_REQUEST 1040
 
