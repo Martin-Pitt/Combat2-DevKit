@@ -1,12 +1,12 @@
-# Combat2 Respawns
+# Combat2 DevKit
 
 Respawns, teams, game objectives and more for Combat2.
 
-At its core Combat2 Respawns (C2R) is an opensource system for Combat2 regions which allows them to have team-based respawns and objective systems.
+At its core Combat2 DevKit (C2DK) is an opensource system for Combat2 regions which allows them to have team-based respawns and objective systems.
 
 The system would be managed by the region owner / SLMC / game developer.
 
-There are also additional scripts/systems that can be used by weapon and vehicle creators to add standardised functionality (Layers) or integration with C2R (Vehicle Respawns). Avatar appearance could also be modified, e.g. changing uniform appearances based on teams like Attacker or Defender, Blue or Red teams, etc, or if entering a snowy-themed area and switching to a snow camouflage texture set.
+There are also additional scripts/systems that can be used by weapon and vehicle creators to add standardised functionality (Layers) or integration with C2DK (Vehicle Respawns). Avatar appearance could also be modified, e.g. changing uniform appearances based on teams like Attacker or Defender, Blue or Red teams, etc, or if entering a snowy-themed area and switching to a snow camouflage texture set.
 
 Concepts and scripts introduced are:
 - [Tracking](#tracking)
@@ -19,7 +19,7 @@ Concepts and scripts introduced are:
 - [Vehicle Respawns](#vehicle-respawns)
 - [Vehicle Layers](#vehicle-layers)
 
-The minimum necessary for C2R are: Tracking and Respawns. Everything else adds value and allows more complex gameplay.
+The minimum necessary for C2DK are: Tracking and Respawns. Everything else adds value and allows more complex gameplay.
 
 Although Tracking can also be used standalone if you just want to enjoy an event-based `llGetAgentList` and being able to easily distribute custom data per agent. Like if you are developing a game for an event like halloween or christmas.
 
@@ -140,7 +140,7 @@ Layer 1, 2 and 3 are typically: Primary, Secondary and Special weapons/gadgets.
 
 > Status: Concept
 
-Vehicle respawns/teleports are currently a non-standard feature that each content creator designs themselves or that a vehicle lacks. Here C2R provides a standard that vehicle creators can use, or for vehicle users to add to their vehicles if they are modifiable.
+Vehicle respawns/teleports are currently a non-standard feature that each content creator designs themselves or that a vehicle lacks. Here C2DK provides a standard that vehicle creators can use, or for vehicle users to add to their vehicles if they are modifiable.
 
 
 <a name="vehicle-layers"></a>
