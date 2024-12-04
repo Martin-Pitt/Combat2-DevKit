@@ -1,4 +1,22 @@
 
+New todo:
+- JSON Server & Replication
+    * The generic version of a tracking server, game state, etc.
+    * Auth for create/write via llGetOwnerKey
+    * Cross-sim auth by one-time signature verification via llSignRSA & llVerifyRSA
+    * Objects vs Config/Singletons?
+        - For example, "territory", "objective", "respawn", w/e
+        - But also global configs like game state/settings/configuration would be great to distribute
+- Defining areas via objects
+    * "Area" objects that define the area volume by themselves
+    * Limited to box-shapes due to llGetObjectDetails
+    * Scan linkset using llGetObjectLinkKey
+
+
+----
+
+
+
 - [x] Tracking Server reimplemented in C2R
     - [x] Can this be more modular to allow for custom per-agent data?
         - Perhaps a way to split the tracking server entirely down to individual data pieces, for e.g. area, experience, group, etc. Use a counter to check if all data pieces been processed pre-enter

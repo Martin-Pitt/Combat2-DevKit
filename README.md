@@ -18,6 +18,7 @@ Concepts and scripts introduced are:
 - [Layers](#layers)
 - [Vehicle Respawns](#vehicle-respawns)
 - [Vehicle Layers](#vehicle-layers)
+- [Object Armor](#object-armor)
 
 The minimum necessary for C2DK are: Tracking and Respawns. Everything else adds value and allows more complex gameplay.
 
@@ -151,6 +152,31 @@ Vehicle respawns/teleports are currently a non-standard feature that each conten
 Vehicles may also have their own loadouts and this could work in a similar way to avatar equipment layers. This would allow HUDs to show the vehicle loadout as layers and the active layer for the vehicle as well as any cooldowns or ammo counts.
 
 Additionally a vehicle seat may be designed in such a way to leave an avatar vulnerable to gunfire but allow them to use their own avatar equipment instead of disabling them by default.
+
+
+<a name="object-armor"></a>
+### Object Armor
+
+> Status: Concept
+
+Object-based health in the Second Life Military Community has traditionally used Listen Based Armor (LBA).
+
+However with Combat2 there is an opportunity to shift weapons and systems to rely on the new tools that LL have provided. It's also possible to provide backwards compatibility to convert LBA for outdated weapons.
+
+Object-based health for armor provides benefits such as auditing, logs, damage feeds, etc. Clasically LBA scripters have had to implement defensive measures to blacklist, throttle and limit damage. LBA armor values and weapon damages have also matured over time, so it would be good to reuse those.
+
+There are generally two types of accepted LBA:
+- LBA
+- LBA Light
+
+LBA Light is armor that can also be damaged by firearms/bullets. This is typically used on deployable equipment or light vehicles.
+
+The other type of LBA armor resembles main battle tank armor, which provides protection from most if not all bullets. Special weapons are needed instead to be able to damage non-light armor. This armor would be typically used on most vehicles. The special weapons would typically be vehicle weapons or heavy weaponry like RPG launchers, explosives etc.
+
+To replicate the LBA types, we would use damage types. For that purpose I have added a custom damage type called DAMAGE_TYPE_ANTI_ARMOR (integer 104). Additionally Object Armor should also be damaged by DAMAGE_TYPE_EXPLOSIVE (integer 102) respectively which is another type that was added.
+
+
+
 
 
 
