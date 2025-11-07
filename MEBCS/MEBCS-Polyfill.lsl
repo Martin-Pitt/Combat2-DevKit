@@ -3,7 +3,7 @@
 // See https://community.secondlife.com/forums/topic/516319-combat-21-teams-respawn/
 
 // Synced LinksetData keys and what they contain:
-// MEBCS_Teams -- Team definitions as an array of objects with name and color properties, includes the special 'unassigned' team at 0
+// MEBCS_TeamsConfig -- Team definitions as an array of objects with name and color properties, includes the special 'unassigned' team at 0
 // MEBCS_Teams.# -- Array of agents assigned to that team_no
 // MEBCS_Teams:<uuid> -- Agent or object team_no assigment, if not defined assume 0, e.g. special 'unassigned' team
 // MEBCS_Respawns.# -- Array of objects assigned as respawn points for that team_no
@@ -29,13 +29,13 @@ integer llDetectedTeam(integer index) { return llGetTeam(llDetectedKey(index)); 
 
 // Returns the number of teams activated on the region
 integer llGetRegionTeamCount() {
-    list teams = llJson2List(llLinksetDataRead("MEBCS_Teams"));
+    list teams = llJson2List(llLinksetDataRead("MEBCS_TeamsConfig"));
     return llGetListLength(teams);
 }
 
 // Returns a list of the team names that have been defined on this region
 list llGetRegionTeamList() {
-    list teams = llJson2List(llLinksetDataRead("MEBCS_Teams"));
+    list teams = llJson2List(llLinksetDataRead("MEBCS_TeamsConfig"));
     list names;
     integer iterator = 1; // Skip the special 'unassigned' team
     integer total = llGetListLength(teams);
@@ -52,7 +52,7 @@ integer llGetTeamMemberCount(integer team_no) { return llGetListLength(llGetTeam
 // Marks an object as a respawn point for the given team. If the object was not assigned to this team it is reassigned. Setting the team_no to -1 will clear the respawn point. If the objects team assignment changes it will unset the respawn point.
 integer llSetTeamRespawn(key object_id, integer team_no) {
     if(team_no < 0 || team_no > 8) return TEAM_UNKNOWN;
-    if(llLinksetDataRead("MEBCS_Team." + (string)team_no)); else return TEAM_NOTACTIVE;
+    if(llLinksetDataRead("MEBCS_Teams." + (string)team_no)); else return TEAM_NOTACTIVE;
     if(llKey2Name(object_id) == "") return TEAM_NORESPAWN;
     
     // Unassign from previous team
@@ -106,7 +106,7 @@ integer llGetTeamRespawnCount(integer team_no) { return llGetListLength(llGetTea
 #define TEAM_COUNT 2 // [integer agents] -- Number of agents on this region belonging to the team
 #define TEAM_RESPAWN 3 // [integer home, integer respawns] -- If this is the team's "home" region and the number of respawn points configured in *this* region
 list llGetTeamDetails(integer team_no, list params) {
-    string teams = llLinksetDataRead("MEBCS_Teams");
+    string teams = llLinksetDataRead("MEBCS_TeamsConfig");
     list data;
     integer iterator;
     integer total = llGetListLength(params);
