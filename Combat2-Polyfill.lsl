@@ -7,7 +7,8 @@
 
 // Unfortunately LSL doesn't support fallbacks, so you must remove this script when these functions are native before you can recompile your scripts
 // However any existing running scripts will continue to work as normal but would not be interacting with the native implementation
-// ⚠ YOU AGREE TO EXPECT THIS SCRIPT TO BE IMMEDIATELY DEPRECATED AND CAUSE SCRIPT COMPILATION ERRORS WHEN THESE FUNCTIONS ARE NATIVELY IMPLEMENTED
+// ⚠ YOU AGREE TO EXPECT THIS SCRIPT TO BE IMMEDIATELY DEPRECATED WHEN THESE FUNCTIONS ARE NATIVELY IMPLEMENTED
+// Additionally this is draft proposal functionality, and so is likely subject to change on final implementation, so expect updating scripts for compliance
 
 // Synced LinksetData keys and what they contain:
 // C2_Teams_Config -- Team definitions as an [array of objects] with [name and color properties]; includes special hardcoded 'unassigned' team at 0
@@ -31,6 +32,36 @@ integer llGetTeam(key target) {
     else return 0;
 }
 
+integer llSetTeam(key target, integer team) {
+    if(team < 0 || team > 8) return TEAM_UNKNOWN;
+    string t = llLinksetDataRead("C2_Teams." + (string)team);
+    if(t); else return TEAM_NOTACTIVE;
+    list teamMembers = llJson2List(t); t = "";
+    
+    integer prevTeam = llGetTeam(target);
+    if(prevTeam == team) return TEAM_OK; // No change needed
+    
+    // Update team membership lists if an agent
+    if(llGetAgentSize(target) != ZERO_VECTOR)
+    {
+        list prevMembers = llJson2List(llLinksetDataRead("C2_Teams." + (string)prevTeam));
+        integer index = llListFindList(prevMembers, [(string)target]);
+        if(index != -1)
+        {
+            prevMembers = llDeleteSubList(prevMembers, index, index);
+            llLinksetDataWrite("C2_Teams." + (string)prevTeam, llList2Json(JSON_ARRAY, prevMembers));
+        }
+        
+        index = llListFindList(teamMembers, [(string)target]);
+        if(index == -1) teamMembers += target;
+        llLinksetDataWrite("C2_Teams." + (string)team, llList2Json(JSON_ARRAY, teamMembers));
+    }
+    
+    llLinksetDataWrite("C2_Teams:" + (string)target, (string)team);
+    
+    return 0;
+}
+
 // Alias towards llGetTeam; Would return team number of task detected in sensor sweep, collision, or damage event.
 integer llDetectedTeam(integer index) { return llGetTeam(llDetectedKey(index)); }
 
@@ -39,7 +70,7 @@ integer llGetRegionTeamCount() {
     string teamsConfig = llLinksetDataRead("C2_Teams_Config");
     if(teamsConfig == "") teamsConfig = "[{\"name\":\"unassigned\",\"color\":\"<0,0,0>\"}]";
     list teams = llJson2List(teamsConfig);
-    return llGetListLength(teams);
+    return llGetListLength(teams) - 1;
 }
 
 // Returns a list of the team names that have been defined on this region
@@ -80,7 +111,7 @@ integer llSetTeamRespawn(key object_id, integer team_no) {
     }
     
     // Assign to new team if not already
-    list respawns = llJson2List(llLinksetDataRead("C2_Respawns." (string)team_no));
+    list respawns = llJson2List(llLinksetDataRead("C2_Respawns." + (string)team_no));
     if(llListFindList(respawns, [(string)object_id]) == -1)
     {
         respawns += object_id;

@@ -78,7 +78,7 @@ state alive
     state_entry()
     {
         llOwnerSay("@clear");
-        llLinksetDataWrite("MEBCS_Combatant.Status:" + llGetOwner(), "Active");
+        llLinksetDataWrite("MEBCS_Combatant.Status:" +  (string)llGetOwner(), "Active");
         llLinksetDataWrite("Screen", "Normal");
         llTakeControls(0, FALSE, TRUE);
         if(DownAnimation) { llStopAnimation(DownAnimation); DownAnimation = ""; }
@@ -103,9 +103,9 @@ state downed
     state_entry()
     {
         llOwnerSay("Downed");
-        llLinksetDataWrite("MEBCS_Combatant.Status:" + llGetOwner(), "Downed");
-        llLinksetDataWrite("MEBCS_Combatant.Downed:" + llGetOwner(), "Downed");
-        string nameTeamsDowned = "MEBCS_Teams_Downed." + llGetTeam(llGetOwner());
+        llLinksetDataWrite("MEBCS_Combatant.Status:" +  (string)llGetOwner(), "Downed");
+        llLinksetDataWrite("MEBCS_Combatant.Downed:" +  (string)llGetOwner(), "Downed");
+        string nameTeamsDowned = "MEBCS_Teams_Downed." +  (string)llGetTeam(llGetOwner());
         list team = llJson2List(llLinksetDataRead(nameTeamsDowned));
         team += llGetOwner();
         llLinksetDataWrite(llList2Json(JSON_ARRAY, team));
@@ -147,8 +147,8 @@ state downed
         {
             // Transition to Deploy
             llOwnerSay("Redeploying");
-            llLinksetDataWrite("MEBCS_Combatant.Status:" + llGetOwner(), "Dead");
-            llLinksetDataDelete("MEBCS_Combatant.Downed:" + llGetOwner());
+            llLinksetDataWrite("MEBCS_Combatant.Status:" + (string)llGetOwner(), "Dead");
+            llLinksetDataDelete("MEBCS_Combatant.Downed:" + (string)llGetOwner());
             llRegionSay(EVENT_CHANNEL, llList2Json(JSON_OBJECT, [
                 "event", "DEAD",
                 "time", llGetTimestamp(),
@@ -163,13 +163,13 @@ state downed
             if(downStatus == "Down")
             {
                 llLinksetDataWrite("Down.Status", "Requested");
-                llLinksetDataRead("MEBCS_Teams:" + llGetOwner() + ".Status", "Requested");
+                llLinksetDataRead("MEBCS_Combatant.Status:" +  (string)llGetOwner(), "Requested");
             }
             
             else if(downStatus == "Requested")
             {
                 llLinksetDataWrite("Down.Status", "Down");
-                llLinksetDataRead("MEBCS_Teams:" + llGetOwner() + ".Status", "Down");
+                llLinksetDataRead("MEBCS_Combatant.Status:" +  (string)llGetOwner(), "Down");
             }
         }
     }
