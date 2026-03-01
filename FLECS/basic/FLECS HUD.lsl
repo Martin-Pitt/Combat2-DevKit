@@ -213,8 +213,8 @@ default
             */
             
             // Fixed lookup:
-            llOwnerSay("Died; Respawning at " + RespawnName);
             llTeleportAgent(agent, "", RespawnPos, <128,128,0>);
+            llOwnerSay("Died; Respawning at " + RespawnName);
         }
         else llRegionSay(SYSTEM_COMBAT_CHANNEL, llChar(RESPAWN_AGENT));
         llRegionSay(SYSTEM_COMBAT_CHANNEL, llChar(AGENT_DEATH));
